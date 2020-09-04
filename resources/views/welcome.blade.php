@@ -83,8 +83,9 @@
                 </div>
 
                 <div class="links" style="margin-bottom: 30rem;">
-                    <p><span style="font-weight: bold;">{{ $routes }} routes</span> parsed in <span style="font-weight: bold;">{{ round($time, 4) }}ms.</p>
-                    <p>Instantiated <span style="font-weight: bold;">{{ count(array_unique($models)) }} models</span></p>
+                    {{-- <p>Boot all models: <span style="font-weight: bold;">{{ round($time1, 4) }}ms</span></p> --}}
+                    <p>Only boot necessary models: <span style="font-weight: bold;">{{ round($time2, 4) }}ms</span></p>
+                    <p>Only boot necessary models and don't use Collections: <span style="font-weight: bold;">{{ round($time3, 4) }}ms</span></p>
                 </div>
             </div>
         </div>

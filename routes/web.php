@@ -7,17 +7,15 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     $routes = collect(app('router')->getRoutes()->getRoutesByName());
 
-    $start = microtime(true);
-
     // dump(app('router')->getRoutes()->compile()['compiled'][1]['/Carol']);
 
-    $models = [];
+    $start1 = microtime(true);
 
     // Avg 90-100ms but occasionally up to 800ms
     // 1000 routes+controllers+models
-    // $routes = $routes->mapWithKeys(function ($route, $name) use (&$models) {
+    // $routes->mapWithKeys(function ($route, $name) use (&$models) {
     //     $routeBindings = array_map(function ($parameter) use (&$models) {
-    //         $models[] = $parameter->getType()->getName();
+    //         // $models[] = $parameter->getType()->getName();
 
     //         return [$parameter->getName() => app($parameter->getType()->getName())->getRouteKeyName()];
     //     }, $route->signatureParameters(UrlRoutable::class));
@@ -29,28 +27,36 @@ Route::get('/', function () {
     //     return [$name => Arr::collapse($routeBindings)];
     // });
 
+    $end1 = microtime(true);
+
+    $start2 = microtime(true);
+
     // Avg. 50-60 ms but occasionally up to 300ms
     // 1000 routes+controllers, 1000 ReflectionMethods, 0 booted models
-    // $routes = $routes->mapWithKeys(function ($route, $name) use (&$models) {
-    //     $routeBindings = array_map(function ($parameter) use (&$models) {
-    //         $model = $parameter->getType()->getName();
+    $routes->mapWithKeys(function ($route, $name) use (&$models) {
+        $routeBindings = array_map(function ($parameter) use (&$models) {
+            $model = $parameter->getType()->getName();
 
-    //         if ((new ReflectionMethod($model, 'getRouteKey'))->class === $model || (new ReflectionMethod($model, 'getRouteKeyName'))->class === $model) {
-    //             $models[] = $model;
-    //             return [$parameter->getName() => app($model)->getRouteKeyName()];
-    //         } else {
-    //             return [$parameter->getName() => 'id'];
-    //         }
-    //     }, $route->signatureParameters(UrlRoutable::class));
+            if ((new ReflectionMethod($model, 'getRouteKey'))->class === $model || (new ReflectionMethod($model, 'getRouteKeyName'))->class === $model) {
+                // $models[] = $model;
+                return [$parameter->getName() => app($model)->getRouteKeyName()];
+            } else {
+                return [$parameter->getName() => 'id'];
+            }
+        }, $route->signatureParameters(UrlRoutable::class));
 
-    //     if (method_exists($route, 'bindingFields')) {
-    //         $routeBindings = array_merge($routeBindings, [$route->bindingFields()]);
-    //     }
+        if (method_exists($route, 'bindingFields')) {
+            $routeBindings = array_merge($routeBindings, [$route->bindingFields()]);
+        }
 
-    //     return [$name => Arr::collapse($routeBindings)];
-    // });
+        return [$name => Arr::collapse($routeBindings)];
+    });
 
-    // Avg. 25-40ms and as low as 14ms!!
+    $end2 = microtime(true);
+
+    $start3 = microtime(true);
+
+    // Avg. 25-40ms and as low as 5ms!!
     // 1000 routes+controllers, 1000 ReflectionMethods, 0 booted models, no collections
     $routesWithBindings = [];
     foreach ($routes->toArray() as $name => $route) {
@@ -59,12 +65,12 @@ Route::get('/', function () {
         foreach ($route->signatureParameters(UrlRoutable::class) as $parameter) {
             $model = $parameter->getType()->getName();
 
-            // if ((new ReflectionMethod($model, 'getRouteKey'))->class === $model || (new ReflectionMethod($model, 'getRouteKeyName'))->class === $model) {
+            if ((new ReflectionMethod($model, 'getRouteKey'))->class === $model || (new ReflectionMethod($model, 'getRouteKeyName'))->class === $model) {
                 $models[] = $model;
                 $routeBindings[$parameter->getName()] = app($model)->getRouteKeyName();
-            // } else {
-            //     $routeBindings[$parameter->getName()] = 'id';
-            // }
+            } else {
+                $routeBindings[$parameter->getName()] = 'id';
+            }
         }
 
         if (method_exists($route, 'bindingFields')) {
@@ -74,9 +80,9 @@ Route::get('/', function () {
         $routesWithBindings[$name] = Arr::collapse($routeBindings);
     }
 
-    $end = microtime(true);
+    $end3 = microtime(true);
 
-    return view('welcome', ['routes' => $routes->count(), 'time' => ($end - $start) * 1000, 'models' => $models]);
+    return view('welcome', ['time1' => ($end1 - $start1) * 1000, 'time2' => ($end2 - $start2) * 1000, 'time3' => ($end3 - $start3) * 1000]);
 });
 
 
